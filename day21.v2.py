@@ -45,50 +45,22 @@ def parse(line: str) -> Monkey:
 @dataclass
 class Monkeys:
     monkeys: dict[str, Monkey]
-    order: list[Monkey] = field(init=False)
-    root: Monkey = field(init=False)
 
     def __post_init__(self):
-        self.root = self.monkeys['root']
-
-        # topological sort
-        self.order = []
-        sorted_monkeys = set()
-
         for monkey in self.monkeys.values():
             match monkey:
-                case Specific(name=name):
-                    self.order.append(monkey)
-                    sorted_monkeys.add(name)
-
-        while len(self.order) < len(self.monkeys):
-            for name, monkey in self.monkeys.items():
-                if name in sorted_monkeys:
-                    continue
-                
-                match monkey:
-                    case MathOp(name=name, left_name=left_name, right_name=right_name) if left_name in sorted_monkeys and right_name in sorted_monkeys:
-                        monkey.left = self.monkeys[left_name]
-                        monkey.right = self.monkeys[right_name]
-                        self.order.append(monkey)
-                        sorted_monkeys.add(name)
+                case MathOp(name=name, left_name=left_name, right_name=right_name):
+                    monkey.left = self.monkeys[left_name]
+                    monkey.right = self.monkeys[right_name]
 
     @staticmethod
     def parse(raw: str) -> 'Monkeys':
         monkeys = [parse(line) for line in raw.splitlines()]
         return Monkeys({m.name: m for m in monkeys})
 
-    # find all monkeys that are rooted at a given monkey
-    def rooted_at(self, monkey: Monkey) -> set[str]:
-        match monkey:
-            case Specific(name=name):
-                return {name}
-            case MathOp(name=name, left=left, right=right):
-                return self.rooted_at(left) | self.rooted_at(right) | {name}
-
     def calculate(self, monkey: Monkey | None = None) -> int:
         if monkey is None:
-            monkey = self.root
+            monkey = self.monkeys['root']
         match monkey:
             case Specific(value=value):
                 return value
@@ -114,7 +86,7 @@ class Monkeys:
         path = [self.monkeys['humn']]
 
         while True:
-            if path[-1] == self.root:
+            if path[-1] == self.monkeys['root']:
                 break
             for monkey in self.monkeys.values():
                 match monkey:
@@ -145,7 +117,6 @@ class Monkeys:
                     print("known", known)
                     print("child value", child_value)
                     
-
                     match op:
                         case "+":
                             # target = child + new_target
